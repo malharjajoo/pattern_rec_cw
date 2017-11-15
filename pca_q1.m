@@ -1,110 +1,139 @@
-function [all_eigenvectors,all_eigenvalues,mu,W] = pca_q1(X)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function [all_eigenvectors,all_eigenvalues,mu,W,diag_matrix,reconstructed_X] = pca_q1(myTrain)
+%Add a Summary 
 
-% calculate mean image - mu 
-mu = mean(X')'; 
+% calculate mean image : mu 
+mu = mean(myTrain,2); %takes mean along coloumns ( gives a mean value for each row )
+X_centred = myTrain-mu;
 
 % calculate covariance matrix - S 
+% then calculate SVD of S
 
-S = (1/size(X,1)) * (X-mu) * (X-mu)'; % note - this is computationally expensive.
-%calculate SVD of S 
+t_cols = size(X_centred,2);
+%t_rows = size(X_centred,1);
+% temp_sum = zeros(t_rows,t_rows);
+% for i = 1:t_cols
+%     temp_sum = temp_sum + ( X_centred(:,i) * X_centred(:,i)' ) ;
+% end
+% S = 1/t_cols*temp_sum;
+S = 1/t_cols* (X_centred) * (X_centred)'; % note - this is computationally expensive.
 [U,diag_matrix,all_eigenvectors] = svd(S) ;
 
-% disp('size of S,U,D,V=');
-% size(S) 
-% size(U)
-% size(diag_matrix)
 
 % eigenvalues, aka singular values
-all_eigenvalues = diag(diag_matrix);
+all_eigenvalues = diag(diag_matrix); 
 
-%truncating eigenvalues and eigenvectors since noticed values 
-% were very close to zero. How can we truncate eigenvectors like this ?
-%There is a V and V_T on SVD of (symmetric) covariance matrix
-nz_eigenvalues = all_eigenvalues(1:size(X,2));
-nz_eigenvectors = all_eigenvectors(1:size(X,2),1:size(X,2)); 
 
-% how to choose "k" ?
-size(nz_eigenvalues)
+%truncating eigenvalues and eigenvectors since indices > 416 
+% were very close to zero ( as seen in matlab variable view window ).
+% ( Why do we truncate eigenvectors like shown below ? More explanation 
+% given in report )
+nz_eigenvalues = all_eigenvalues(1:size(X_centred,2));
+nz_eigenvectors = all_eigenvectors(:,1:size(nz_eigenvalues,1)); 
 
-[best_k,best_reconstruction_error,best_variance] = choose_bestK(size(nz_eigenvalues,1),nz_eigenvalues);
-fprintf('best k found = %d \n', best_k); 
-fprintf('best reconstruction error = %f \n', best_reconstruction_error); 
-fprintf('best variance = %f \n', best_variance); 
+% Method of choosing "k" -
+ [best_k,best_reconstruction_error,best_variance] = choose_bestK(size(nz_eigenvalues,1),nz_eigenvalues);
+ fprintf('best k found = %d \n', best_k); 
+ fprintf('Reconstruction error found using eigenvalues= %f \n', best_reconstruction_error); 
+ fprintf('variance of chosen number (k) principal components = %f \n', best_variance);
+
+% since eigenvectors are in descending order ( eigenvectrs for
+% decreasing values of corresponding eigenvalues ) and we want 
+% the first "k" eigenvectors.
 W = nz_eigenvectors(:,1:best_k);
 
 %finally use PCA to project data samples to lower subspace.
 % each row corresponds to an observation, but now has reduced
 % dimensions ( = best_k ) 
-projected_data = X*W; % Y = W' * X ;
- 
-%disp('check the sizes');size(projected_data)
+PCA_Score = X_centred'*W;
+reconstructed_X = (PCA_Score * W')'+ mu ; 
 
-
-recon2_error  = findReconstructionError_method2(projected_data,W,X);
-fprintf('The reconstruction2 error = %d \n',recon2_error);
+reconstruction2_error  = findReconstructionError_method2(PCA_Score,W,mu,myTrain);
+fprintf('The reconstruction2 error = %f \n',reconstruction2_error);
 end
 
 
-function [recon2_error] =  findReconstructionError_method2(projected_data,W,X)
-    
-% since Y = XW , and W is (almost?) orthogonal 
-reconstructed_X = projected_data * W' ; 
 
-total_rows = size(X,1);
 
-total_err = 0.0;
-    for i = 1:total_rows
-         total_err = total_err +  sum((X(i,:) - reconstructed_X(i,:)).^2);
-    end
-    
-recon2_error = total_err/total_rows;
-
-end 
-
-function checkOrthogonal(A)
-     if size(nonzeros(A*A'-(eye(size(A,1),size(A,1)))),1) > 1 
-        disp('Matrix is not orthogonal !');
-     else
-             disp('Matrix is orthogonal.');
-     end
- 
-end
-
+%Method 1- calculate reconstruction error using eigenvalues
  function [best_k,best_reconstruction_error,best_variance] = choose_bestK(max_dim,eigvalues)
         
     % imp - this needs to be in ascending order 
     % since we want to find the smallest "k" that 
-    % meets the "golden ratio" defined below.
-    k_values = 1:max_dim;
+    % meets the "golden ratio" defined below. 
+    % However, if desired then this can be done in reverse order too if you
+    % invert the ratio (calculated below inside the loop ) , then can use the
+    % k values in descending order too.
+    
+   k_values = 1:max_dim; % [1,2,3,4...520]
  
     % 95 % variance retained
-   golden_ratio = 0.05;
+   golden_ratio = 0.01;
 
     % For each k value, find the ratio
-    % As we keep increasing "k",in the ratio, the numerator
-    % decreases and the denominator increases.
+    % As we keep increasing "k", the ratio numerator
+    % decreases and the denominator increases and hence 
+    % overall ratio decreases and the loop iterations 
+    % will stop since ratio will converge to "golden_ratio" eventually.
     best_k = k_values(1);
-    best_reconstruction_error = +Inf;
+    best_reconstruction_error = 0;
     best_variance = 0;
-    k_values
-    for k = k_values
+   
+    for k = 1:max_dim
        reconstruction_error = sum(eigvalues(k+1:end));
        variance             = sum(eigvalues);
        
-       %just update best results so far
-        best_reconstruction_error = min(best_reconstruction_error,reconstruction_error);
-        best_variance = max(best_variance,variance);
-       reconstruction_error/variance
+        
         if reconstruction_error/variance <= golden_ratio
             best_k = k;
+            %just storing error and variance for value of chosen "k"
+            best_reconstruction_error = reconstruction_error;
+            best_variance = variance;
+
             break;
         end
         
     end
        
  end
+ 
+ 
+ 
+ 
+
+%Method 2- calculate reconstruction error by re-constructing input and
+%finding squared euclidean distance
+function [recon2_error] =  findReconstructionError_method2(PCA_Score,W,mu,original_data)
+    
+% since Y = XW 
+%       YW' = X ( since W is orthogonal ?)
+reconstructed_X = (PCA_Score * W')'+ mu ; 
+ 
+total_samples = size(original_data,2);
+
+%calculates vector norm - |X-X_recons|^2
+total_err = 0.0;
+    for i = 1:total_samples
+         total_err = total_err +  sum((original_data(:,i) - reconstructed_X(:,i)).^2);
+    end
+    
+ 
+recon2_error = total_err/total_samples;
+
+end 
+
+
+ 
+ 
+%  %Just a helper function
+%  function checkOrthogonal(A)
+%      if size(nonzeros(A*A'-(eye(size(A,1),size(A,1)))),1) > 1 
+%         disp('Matrix is not orthogonal !');
+%      else
+%              disp('Matrix is orthogonal.');
+%      end
+%  
+% end
+
 
     
  
