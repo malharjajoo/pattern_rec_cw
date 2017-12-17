@@ -1,5 +1,4 @@
-function [all_eigenvectors,all_eigenvalues,mu,W,diag_matrix,reconstructed_X] = pca_q1(myTrain)
-%Add a Summary 
+function [all_eigenvectors,all_eigenvalues,mu,W,diag_matrix,reconstructed_X] = pca_eigenfaces_q1_part_b(myTrain)
 
 % calculate mean image : mu 
 mu = mean(myTrain,2); %takes mean along coloumns ( gives a mean value for each row )
@@ -8,15 +7,20 @@ X_centred = myTrain-mu;
 % calculate covariance matrix - S 
 % then calculate SVD of S
 
-t_cols = size(X_centred,2);
-%t_rows = size(X_centred,1);
-% temp_sum = zeros(t_rows,t_rows);
-% for i = 1:t_cols
-%     temp_sum = temp_sum + ( X_centred(:,i) * X_centred(:,i)' ) ;
-% end
-% S = 1/t_cols*temp_sum;
-S = 1/t_cols* (X_centred) * (X_centred)'; % note - this is computationally expensive.
+N = size(X_centred,2);
+S = 1/N * (X_centred)'*(X_centred); 
 [U,diag_matrix,all_eigenvectors] = svd(S) ;
+
+% u_i = A * v_i ; where u_i is eigenvector calculated using S = 1/N(AA') in
+% and v_i is eigenvector calculated using S = 1/N(A'A)
+% We need to normalize each eigenvector;
+normalized_eigenvectors = myTrain * all_eigenvectors;
+for i = 1:size(normalized_eigenvectors,2)
+    
+    Temp = normalized_eigenvectors(:,i);
+    vector_norm = sqrt(sum(Temp.*Temp)); % vector norm
+    normalized_eigenvectors(:,i) = normalized_eigenvectors(:,i)/vector_norm;
+end
 
 
 % eigenvalues, aka singular values
@@ -27,14 +31,14 @@ all_eigenvalues = diag(diag_matrix);
 % were very close to zero ( as seen in matlab variable view window ).
 % ( Why do we truncate eigenvectors like shown below ? More explanation 
 % given in report )
-nz_eigenvalues = all_eigenvalues(1:size(X_centred,2));
-nz_eigenvectors = all_eigenvectors(:,1:size(nz_eigenvalues,1)); 
+N = size(X_centred,2);
+nz_eigenvalues = all_eigenvalues(1:N-1);
+nz_eigenvectors = all_eigenvectors(:,1:N-1);
 
 % Method of choosing "k" -
- [best_k,best_reconstruction_error,best_variance] = choose_bestK(size(nz_eigenvalues,1),nz_eigenvalues);
- fprintf('best k found = %d \n', best_k); 
- fprintf('Reconstruction error found using eigenvalues= %f \n', best_reconstruction_error); 
- fprintf('variance of chosen number (k) principal components = %f \n', best_variance);
+[best_k,best_reconstruction_error,~] = choose_bestK(size(nz_eigenvalues,1),nz_eigenvalues);
+fprintf('best k found = %d \n', best_k); 
+fprintf('Reconstruction error found using eigenvalues= %f \n', best_reconstruction_error); 
 
 % since eigenvectors are in descending order ( eigenvectrs for
 % decreasing values of corresponding eigenvalues ) and we want 
@@ -49,10 +53,8 @@ reconstructed_X = (PCA_Score * W')'+ mu ;
 
 reconstruction2_error  = findReconstructionError_method2(PCA_Score,W,mu,myTrain);
 fprintf('The reconstruction2 error = %f \n',reconstruction2_error);
+
 end
-
-
-
 
 %Method 1- calculate reconstruction error using eigenvalues
  function [best_k,best_reconstruction_error,best_variance] = choose_bestK(max_dim,eigvalues)
@@ -120,19 +122,6 @@ total_err = 0.0;
 recon2_error = total_err/total_samples;
 
 end 
-
-
- 
- 
-%  %Just a helper function
-%  function checkOrthogonal(A)
-%      if size(nonzeros(A*A'-(eye(size(A,1),size(A,1)))),1) > 1 
-%         disp('Matrix is not orthogonal !');
-%      else
-%              disp('Matrix is orthogonal.');
-%      end
-%  
-% end
 
 
     

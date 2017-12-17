@@ -1,0 +1,453 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{refstyle}
+\usepackage{float}
+\usepackage{listings}
+\usepackage[framed,numbered]{matlab-prettifier}
+
+
+% Include other packages here, before hyperref.
+
+% If you comment hyperref and then uncomment it, you should delete
+% egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[breaklinks=true,bookmarks=false]{hyperref}
+
+\cvprfinalcopy % *** Uncomment this line for the final submission
+
+\def\cvprPaperID{****} % *** Enter the CVPR Paper ID here
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+
+% Pages are numbered in submission mode, and unnumbered in camera-ready
+%\ifcvprfinal\pagestyle{empty}\fi
+\setcounter{page}{4321}
+\begin{document}
+
+
+\newcommand{\getrows}[1]{2076}
+
+%%%%%%%%% TITLE
+\title{Pattern Recognition: Coursework 1}
+
+\author{Malhar Jajoo\\
+Imperial College London\\
+{\tt\small mj2514@ic.ac.uk}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+\and
+Second Author\\
+Institution2\\
+{\tt\small secondauthor@i2.org}
+}
+
+\maketitle
+%\thispagestyle{empty}
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+   The report contains MATLAB implementation of Principal Component Analysis (PCA) and Support Vector Machine (SVM).
+   It explores various properties of PCA for facial image reconstruction as well as classification. \\
+   
+   SVM is extended for Multi-Class classification of facial images. Finally, classification results of PCA and SVM are compared.
+   
+\end{abstract}
+
+%%%%%%%%% BODY TEXT
+\section{Principal Component Analysis}
+
+\subsection{Introduction}
+
+Principal Component Analysis (PCA) is a successful dimensionality reduction 
+algorithm, whose central output is a set of basis vectors in a reduced dimension.
+These basis vectors are the eigenvectors corresponding to $k$\footnote{If input feature $x$ is of dimension $n$, the output of PCA is a reduced subspace of dimension $k$ such that ideally $k$ \textless $n$.} largest eigenvalues of the Covariance matrix of input Data.
+
+It is a Generative Algorithm\footnote{A Generative Algorithm learns joint probability distribution for input data $x$ and labels $y$ as $p(x,y)$ whereas a Discriminative Algorithm learns conditional probability distribution $p(y|x)$.} and hence can be used for 
+reconstruction. This property is further used for classification.
+
+%-------------------------------------------------------------------------
+
+
+
+\subsection{Eigenfaces}\label{EigenFaces}
+
+In the following section, two methods (varying in computation complexity)
+are demonstrated for applying PCA to input face data.
+
+The input face data is partitioned into a training and test set in the ratio
+of 4:1 respectively. This ratio has been proven to be a good rule of thumb. It is also made sure that training set contains some examples of each class.
+
+\subsubsection{PCA: computationally intensive method}\label{pca_poor_method}
+
+In this section, the Covariance matrix $S$ is calculated as follows.
+\begin{equation}
+S_{2576\times2576}=\frac{1}{N}(X_{2576\times 416}\times X^T) \label{computationally_intensive_covariance}
+\end{equation}
+
+\iffalse
+\begin{equation}
+$$\underset{2576\times 2576}S=\frac{1}{N}*(\underset{2576\times 416}X*X^T)$$
+\end{equation}
+\fi
+
+PUT THIS AS EQUATION CAPTION- $X$ is mean-centered\footnote{mean along each dimension of the input data matrix is calculated and subtracted from input matrix for all observations.} input data matrix.
+	$N$ is total number of observations.
+
+\begin{figure}
+\begin{center}
+\fbox{\includegraphics[angle=-90,scale=1.2]{./images/mean_image.png}}
+\end{center}
+   \caption{Mean image for input data.}
+\label{fig:mean_image}
+\end{figure}
+
+\iffalse
+%code for stacking images one below the other.
+\begin{figure}
+  \begin{subfigure}[b]{0.25\textwidth}
+    \begin{center}
+    \fbox{\includegraphics[angle=-90,scale=2]{./images/mean_image.png}}
+    \end{center}
+    \label{fig:Ng1} 
+  \end{subfigure}
+
+  \begin{subfigure}[b]{0.25\textwidth}
+    \begin{center}
+    \fbox{\includegraphics[width=2\linewidth,angle=-90,scale=0.5]{./images/eigenvectors.png}}
+    \end{center}
+     \label{fig:Ng2} 
+  \end{subfigure}
+\end{figure}
+\fi
+
+The mean image\footnote{This image is obtained by reshaping mean vector into a matrix of size $46\times56$. Henceforth all images will be of this dimension unless stated otherwise.} is shown in \figref{mean_image}
+
+\subsubsection*{Decomposing Covariance matrix}\label{decomp_cov_matrix}
+The Covariance matrix is calculated as shown above, and 
+then Matlab SVD command is used to obtain eigenvectors and eigenvalues
+of the matrix.
+
+The first ten eigenvectors are shown in \figref{eigenvectors}. Each eigenvector 
+accounts for a set of features that characterize variations among input faces.
+
+Eigenvalues after $N-1$, where $N$ is the number of observations, are very close to zero and hence these eigenvalues and corresponding eigenvectors are discarded. This is because {\bf TODO: EXPLAIN THIS.}
+
+\subsubsection*{Heuristic for choosing dimension $k$}
+
+After obtaining non-zero eigenvalues and corresponding eigenvectors 
+through the process shown above, a heuristic is required to choose 
+the dimension of the resultant subspace, which should be lesser than that of the input data.\footnote{The input data after partitioning,as explained in section 1.2 is of size $2576\times416$ in this coursework. PCA aims to determine a value $k$ \textless $416$.}
+
+The value of $k$ is determined by looping over values from 1 to the number of data samples. In each iteration the ratio $$ Reconstruction Error/Variance $$ is computed, and if it falls below a certain threshold,
+the loop is terminated and the value of $k$ is the final result.
+
+{\bf TODO: More details on the algorithm are placed in the Appendix.}
+
+For a threshold of WHAT
+The resultant value found using the heuristic is $k = something$.
+The output of PCA is a set of basis vectors $W$ given by - $$W_{2576 \times k} = first\: k\: eigenvectors\: of\: S$$
+\begin{figure}
+ \begin{center}
+    \fbox{\includegraphics[width=2\linewidth,angle=-90,scale=0.4]{./images/eigenvectors.eps}}
+    \end{center}
+   \caption{First ten eigenvectors of covariance matrix. They look like ghostly faces and are also called eigenfaces.}
+\label{fig:eigenvectors}
+\end{figure}
+
+%-------------------------------------------------------------------------
+\subsubsection{PCA: Efficient method}\label{pca_efficient_method}
+
+In this section, the Covariance matrix $S$ is calculated as follows.
+\begin{equation}
+S_{416\times 416}=\frac{1}{N}(X^T\times X_{2576\times 416}) \label{fast_covariance}
+\end{equation} 
+
+Comparing dimension of $S$ in equation (\ref{fast_covariance}) with $S$ in equation (\ref{computationally_intensive_covariance}), it is clear that this method is much faster than the
+previous method.
+
+The eigenvalues and eigenvectors are computed as explained in section \ref{decomp_cov_matrix}. It is found that the eigenvalues thus computed are the same as first $N-1$ eigenvalues computed in section {\ref{decomp_cov_matrix}}. The eigenvectors are related by \[ a_{2576 \times 1} = X_{2576 \times 416} \times b_{416 \times 1,} \]
+where $a$ refers to an eigenvector calculated as in \ref{pca_poor_method}, $b$ refers to an eigenvector calculated as in \ref{pca_efficient_method} and $X$ is training data.
+
+It is important to normalize the eigenvectors $a$ obtained in this method
+since they need to be basis vectors with unit magnitude.
+
+\subsection{Application of Eigenfaces}
+
+In the following section, input face images are reconstructed using results(eigenvectors) from PCA. This property is further used for classification of test images.
+
+\subsubsection{Face Image Reconstruction}
+
+The theoretical Reconstruction error $J$ is given by 
+\begin{equation} J = \sum_{i=k+1}^N eigenvalues
+\label{theoretical_error}
+\end{equation}
+
+The practical Reconstruction error is given by 
+\begin{equation} 
+P = \frac{1}{N}\sum_{n=1}^N |x_n - x_{n_Reconstructed}|^2 
+\label{practical_error}
+\end{equation}
+
+\begin{figure}
+ \begin{center}
+    \fbox{\includegraphics[width=0.7\linewidth,scale=0.1]{./images/reconError_vs_k.eps}}
+    \end{center}
+   \caption{Reconstruction error is inversely proportional to $k$.}
+   \label{fig:recon_error}
+\end{figure}
+
+It is found that both (\ref{theoretical_error}) and (\ref{practical_error}) lead to same reconstruction error. An example of 3 reconstructed images
+from training images is given in \figref{reconstructed_training_data}.
+
+{\bf AN EXAMPLE FOR TEST IMAGES IS PLACED IN APPENDIX SECTION <>}
+
+\begin{figure}
+ \begin{center}
+    \fbox{\includegraphics[width=0.9\linewidth,scale=0.3]{./images/reconstructed_training_data_10_47_244.eps}}
+    \end{center}
+   \caption{The upper row contains face images from training set and lower row contains corresponding reconstructed images with $k$ = 124.
+}
+   \label{fig:reconstructed_training_data}
+\end{figure}
+
+
+\subsubsection{PCA-based Classification}
+
+In this section, PCA is used for classification of images using the procedure from 
+slide 23 of PRlecturefacesubspace.
+
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline
+Prediction Accuracy & $3.846154\%$ \\
+Precision & $0.006292$ \\
+Recall & $0.019444$\\
+Specificity & $0.979297$\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluating classifier performance. Various statistics calculated from confusion matrix. These values are averaged
+over total classes.}
+\end{table}
+
+
+Finally, you may feel you need to tell the reader that more details can be
+found elsewhere, and refer them to a technical report.  For conference
+submissions, the paper must stand on its own, and not {\em require} the
+reviewer to go to a techreport for further details.  Thus, you may say in
+the body of the paper ``further details may be found
+in~\cite{Authors14b}''.  Then submit the techreport as additional material.
+Again, you may not assume the reviewers will read this material. 
+
+Sometimes your paper is about a problem which you tested using a tool which
+is widely known to be restricted to a single institution.  For example,
+let's say it's 1969, you have solved a key problem on the Apollo lander,
+and you believe that the CVPR70 audience would like to hear about your
+solution.  The work is a development of your celebrated 1968 paper entitled
+``Zero-g frobnication: How being the only people in the world with access to
+the Apollo lander source code makes us a wow at parties'', by Zeus \etal.
+
+You can handle this paper like any other.  Don't write ``We show how to
+improve our previous work [Anonymous, 1968].  This time we tested the
+algorithm on a lunar lander [name of lander removed for blind review]''.
+That would be silly, and would immediately identify the authors. Instead
+write the following:
+\begin{quotation}
+\noindent
+   We describe a system for zero-g frobnication.  This
+   system is new because it handles the following cases:
+   A, B.  Previous systems [Zeus et al. 1968] didn't
+   handle case B properly.  Ours handles it by including
+   a foo term in the bar integral.
+
+   ...
+
+   The proposed system was integrated with the Apollo
+   lunar lander, and went all the way to the moon, don't
+   you know.  It displayed the following behaviours
+   which show how well we solved cases A and B: ...
+\end{quotation}
+As you can see, the above text follows standard scientific convention,
+reads better than the first version, and does not explicitly name you as
+the authors.  A reviewer might think it likely that the new paper was
+written by Zeus \etal, but cannot make any decision based on that guess.
+He or she would have to be sure that no other authors could have been
+contracted to solve problem B.
+
+FAQ: Are acknowledgements OK?  No.  Leave them for the final copy.
+
+\subsection{Miscellaneous}
+
+\noindent
+Compare the following:\\
+\begin{tabular}{ll}
+ \verb'$conf_a$' &  $conf_a$ \\
+ \verb'$\mathit{conf}_a$' & $\mathit{conf}_a$
+\end{tabular}\\
+See The \TeX book, p165.
+
+The space after \eg, meaning ``for example'', should not be a
+sentence-ending space. So \eg is correct, {\em e.g.} is not.  The provided
+\verb'\eg' macro takes care of this.
+
+When citing a multi-author paper, you may save space by using ``et alia'',
+shortened to ``\etal'' (not ``{\em et.\ al.}'' as ``{\em et}'' is a complete word.)
+However, use it only when there are three or more authors.  Thus, the
+following is correct: ``
+   Frobnication has been trendy lately.
+   It was introduced by Alpher~\cite{Alpher02}, and subsequently developed by
+   Alpher and Fotheringham-Smythe~\cite{Alpher03}, and Alpher \etal~\cite{Alpher04}.''
+
+This is incorrect: ``... subsequently developed by Alpher \etal~\cite{Alpher03} ...''
+because reference~\cite{Alpher03} has just two authors.  If you use the
+\verb'\etal' macro provided, then you need not worry about double periods
+when used at the end of a sentence as in Alpher \etal.
+
+For this citation style, keep multiple citations in numerical (not
+chronological) order, so prefer \cite{Alpher03,Alpher02,Authors14} to
+\cite{Alpher02,Alpher03,Authors14}.
+
+
+\begin{figure*}
+\begin{center}
+\fbox{\rule{0pt}{2in} \rule{.9\linewidth}{0pt}}
+\end{center}
+   \caption{Example of a short caption, which should be centered.}
+\label{fig:short}
+\end{figure*}
+
+%------------------------------------------------------------------------
+\section{Support Vector Machine}
+
+\subsection{Introduction}
+Support Vector Machine (SVM) is a highly successful Binary Classification algorithm.
+It is a supervised learning algorithm.
+
+\subsection{Multi-Class Extension for SVM}
+In this section, Multi-class extension of SVM is explored using one-vs-all and one-vs-one methods and then classification results are compared with PCA-based classification.
+
+The input data partition is the same as used in section \ref{EigenFaces}.
+
+\subsection*{Multi-Class Extension for SVM using training set}
+
+\subsection*{Multi-Class Extension using PCA dataset}
+
+%-------------------------------------------------------------------------
+\subsection{Margins and page numbering}
+
+All printed material, including text, illustrations, and charts, must be kept
+within a print area 6-7/8 inches (17.5 cm) wide by 8-7/8 inches (22.54 cm)
+high.
+Page numbers should be in footer with page numbers, centered and .75
+inches from the bottom of the page and make it start at the correct page
+number rather than the 4321 in the example.  To do this fine the line (around
+line 23)
+\begin{verbatim}
+%\ifcvprfinal\pagestyle{empty}\fi
+\setcounter{page}{4321}
+\end{verbatim}
+where the number 4321 is your assigned starting page.
+
+Make sure the first page is numbered by commenting out the first page being
+empty on line 46
+\begin{verbatim}
+%\thispagestyle{empty}
+\end{verbatim}
+
+
+%-------------------------------------------------------------------------
+\subsection{Type-style and fonts}
+
+Wherever Times is specified, Times Roman may also be used. If neither is
+available on your word processor, please use the font closest in
+appearance to Times to which you have access.
+
+MAIN TITLE. Center the title 1-3/8 inches (3.49 cm) from the top edge of
+the first page. The title should be in Times 14-point, boldface type.
+Capitalize the first letter of nouns, pronouns, verbs, adjectives, and
+adverbs; do not capitalize articles, coordinate conjunctions, or
+prepositions (unless the title begins with such a word). Leave two blank
+lines after the title.
+
+AUTHOR NAME(s) and AFFILIATION(s) are to be centered beneath the title
+and printed in Times 12-point, non-boldface type. This information is to
+be followed by two blank lines.
+
+The ABSTRACT and MAIN TEXT are to be in a two-column format.
+
+MAIN TEXT. Type main text in 10-point Times, single-spaced. Do NOT use
+double-spacing. All paragraphs should be indented 1 pica (approx. 1/6
+inch or 0.422 cm). Make sure your text is fully justified---that is,
+flush left and flush right. Please do not place any additional blank
+lines between paragraphs.
+
+Figure and table captions should be 9-point Roman type as in
+Figures~\ref{fig:onecol} and~\ref{fig:short}.  Short captions should be centred.
+
+\noindent Callouts should be 9-point Helvetica, non-boldface type.
+Initially capitalize only the first word of section titles and first-,
+second-, and third-order headings.
+
+FIRST-ORDER HEADINGS. (For example, {\large \bf 1. Introduction})
+should be Times 12-point boldface, initially capitalized, flush left,
+with one blank line before, and one blank line after.
+
+SECOND-ORDER HEADINGS. (For example, { \bf 1.1. Database elements})
+should be Times 11-point boldface, initially capitalized, flush left,
+with one blank line before, and one after. If you require a third-order
+heading (we discourage it), use 10-point Times, boldface, initially
+capitalized, flush left, preceded by one blank line, followed by a period
+and your text on the same line.
+ 
+
+%-------------------------------------------------------------------------
+\subsection{Appendix}
+
+\subsection*{PCA}
+\begin{figure}[H]
+ \begin{center}
+    \fbox{\includegraphics[width=0.9\linewidth,scale=0.5]{./images/reconstructed_test_data_32_67_100.eps}}
+    \end{center}
+   \caption{The upper row contains face images from test set and lower row contains corresponding reconstructed images (using PCA).
+}
+   \label{fig:reconstructed_test_data}
+\end{figure}
+
+
+\subsection*{SVM}
+\onecolumn
+\lstinputlisting[style=Matlab-editor,caption={Code for one-vs-all extension for multi-class SVM}]{one_vs_all.m}
+
+
+%-------------------------------------------------------------------------
+\subsection{References}
+
+List and number all bibliographical references in 9-point Times,
+single-spaced, at the end of your paper. When referenced in the text,
+enclose the citation number in square brackets, for
+example~\cite{Authors14}.  Where appropriate, include the name(s) of
+editors of referenced books.
+
+
+%------------------------------------------------------------------------
+
+
+{\small
+\bibliographystyle{ieee}
+\bibliography{egbib}
+}
+
+\end{document}
