@@ -1,0 +1,482 @@
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage{cvpr}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{refstyle}
+\usepackage{float}
+\usepackage{listings}
+\usepackage[framed,numbered]{matlab-prettifier}
+\usepackage[titletoc]{appendix}
+
+
+% Include other packages here, before hyperref.
+
+% If you comment hyperref and then uncomment it, you should delete
+% egpaper.aux before re-running latex.  (Or just hit 'q' on the first latex
+% run, let it finish, and you should be clear).
+\usepackage[breaklinks=true,bookmarks=false]{hyperref}
+
+\cvprfinalcopy % *** Uncomment this line for the final submission
+
+\def\cvprPaperID{****} % *** Enter the CVPR Paper ID here
+\def\httilde{\mbox{\tt\raisebox{-.5ex}{\symbol{126}}}}
+
+% Pages are numbered in submission mode, and unnumbered in camera-ready
+%\ifcvprfinal\pagestyle{empty}\fi
+\setcounter{page}{4321}
+\begin{document}
+
+
+\newcommand{\getrows}[1]{2076}
+
+%%%%%%%%% TITLE
+\title{Pattern Recognition: Coursework 1}
+
+\author{Malhar Jajoo\\
+Imperial College London\\
+{\tt\small mj2514@ic.ac.uk}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+\and
+Armando Piasko\\
+Imperial College London\\
+{\tt\small armando.piasko17@ic.ac.uk}
+}
+
+\maketitle
+%\thispagestyle{empty}
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+   The report contains MATLAB implementation of Principal Component Analysis (PCA) and Support Vector Machine (SVM).
+   It explores various properties of PCA for facial image reconstruction as well as classification. \\
+   
+   SVM is extended for Multi-Class classification of facial images. Finally, classification results of PCA and SVM are compared.
+   
+\end{abstract}
+
+%%%%%%%%% BODY TEXT
+\section{Principal Component Analysis}
+
+\subsection{Introduction}
+
+Principal Component Analysis (PCA) is a successful dimensionality reduction 
+algorithm, whose central output is a set of basis vectors in a reduced dimension.
+These basis vectors are the eigenvectors corresponding to $k$\footnote{If input feature $x$ is of dimension $n$, the output of PCA is a reduced subspace of dimension $k$ such that (ideally) $k$ \textless\textless $n$.} largest eigenvalues of the Covariance matrix of input Data.
+
+It is a Generative Algorithm\footnote{A Generative Algorithm learns joint probability distribution for input data $x$ and labels $y$ as $p(x,y)$ whereas a Discriminative Algorithm learns conditional probability distribution $p(y|x)$.} and hence can be used for 
+reconstruction. This property is further used for classification.
+
+%-------------------------------------------------------------------------
+
+
+
+\subsection{Eigenfaces}\label{EigenFaces}
+
+In the following section, two methods (varying in computation complexity)
+are demonstrated for applying PCA to input face data.
+
+The input face data is partitioned into a training and test set in the ratio
+of 4:1 respectively. This ratio has been proven to be a good rule of thumb. The partitioning also ensures that training set contains some examples of each class.
+
+\subsubsection{PCA: computationally intensive method}\label{pca_poor_method}
+
+In this section, the Covariance matrix $S$ is calculated as follows.
+\begin{equation}
+S_{2576\times2576}=\frac{1}{N}(X_{2576\times 416}\times X^T) \label{computationally_intensive_covariance}
+\end{equation}
+
+\iffalse
+\begin{equation}
+$$\underset{2576\times 2576}S=\frac{1}{N}*(\underset{2576\times 416}X*X^T)$$
+\end{equation}
+\fi
+
+where $X$ is mean-centered\footnote{mean along each dimension of the input data matrix is calculated and subtracted from input matrix for all observations.} input data matrix and $N$ is total number of observations.
+
+\begin{figure}
+\begin{center}
+\fbox{\includegraphics[angle=-90,scale=1.6]{./images/mean_image.png}}
+\end{center}
+   \caption{Mean image for input data.}
+\label{fig:mean_image}
+\end{figure}
+
+\iffalse
+%code for stacking images one below the other.
+\begin{figure}
+  \begin{subfigure}[b]{0.25\textwidth}
+    \begin{center}
+    \fbox{\includegraphics[angle=-90,scale=2]{./images/mean_image.png}}
+    \end{center}
+    \label{fig:Ng1} 
+  \end{subfigure}
+
+  \begin{subfigure}[b]{0.25\textwidth}
+    \begin{center}
+    \fbox{\includegraphics[width=2\linewidth,angle=-90,scale=0.5]{./images/eigenvectors.png}}
+    \end{center}
+     \label{fig:Ng2} 
+  \end{subfigure}
+\end{figure}
+\fi
+
+The mean image\footnote{This image is obtained by reshaping mean vector into a matrix of size $46\times56$. Henceforth all images will be of this dimension unless stated otherwise.} is shown in \figref{mean_image}
+
+\subsubsection*{Decomposing Covariance matrix}\label{decomp_cov_matrix}
+The Covariance matrix is calculated as shown above, and 
+then Matlab SVD command is used to obtain eigenvectors and eigenvalues
+of the matrix.
+
+The first ten eigenvectors are shown in \figref{eigenvectors}. Each eigenvector 
+accounts for a set of features that characterize variations among input faces.
+
+Eigenvalues after $N-1$, where $N$ is the number of observations (416 for partition used), are very close to zero and hence these eigenvalues and corresponding eigenvectors are discarded.
+
+\subsubsection*{Heuristic for choosing PCA dimension $k$}
+
+After obtaining non-zero eigenvalues and corresponding eigenvectors 
+through the process shown above, a heuristic is required to choose 
+the dimension of the resultant subspace, which should be lesser than that of the input data.\footnote{The input data after partitioning,as explained in section 1.2 is of size $2576\times416$ in this coursework. PCA aims to determine a value $k$ \textless\textless $416$.}
+
+The value of $k$ is determined by computing a ratio for increasing values of $k$ until it falls below a (user-calibrated) threshold. The smallest value of $k$ thus obtained is chosen.
+
+More details on the algorithm is provided as Appendix code listing \ref{lst:choose_bestK}.
+
+The resultant value found using the heuristic is 
+$$ k = 124 $$ 
+The output of PCA is a set of basis vectors $W$ given by - $$W_{2576 \times k} = first\: k\: eigenvectors\: of\: S$$
+\begin{figure}
+ \begin{center}
+    \fbox{\includegraphics[width=2\linewidth,angle=-90,scale=0.5]{./images/eigenvectors.eps}}
+    \end{center}
+   \caption{First ten eigenvectors of covariance matrix. They look like ghostly faces and are also called eigenfaces.}
+\label{fig:eigenvectors}
+\end{figure}
+
+%-------------------------------------------------------------------------
+\subsubsection{PCA: Efficient method}\label{pca_efficient_method}
+
+In this section, the Covariance matrix $S$ is calculated as follows.
+\begin{equation}
+S_{416\times 416}=\frac{1}{N}(X^T\times X_{2576\times 416}) \label{fast_covariance}
+\end{equation} 
+
+Comparing dimension of $S$ in equation (\ref{fast_covariance}) with $S$ in equation (\ref{computationally_intensive_covariance}), it is clear that this method is much faster than the
+previous method.
+
+The eigenvalues and eigenvectors are computed as explained in section \ref{decomp_cov_matrix}. It is found that the eigenvalues thus computed are the same as first $N-1$ eigenvalues computed in section {\ref{decomp_cov_matrix}}. The eigenvectors are related by \[ a_{2576 \times 1} = X_{2576 \times 416} \times b_{416 \times 1,} \]
+where $a$ refers to an eigenvector calculated as in \ref{pca_poor_method}, $b$ refers to an eigenvector calculated as in \ref{pca_efficient_method} and $X$ is training data.
+
+It is important to normalize the eigenvectors $a$ obtained in this method
+since they need to be basis vectors with unit magnitude.
+
+\subsection{Application of Eigenfaces}
+
+In the following section, input face images are reconstructed using results (eigenvectors) from PCA. This property is further used for classification of test images.
+
+\subsubsection{Face Image Reconstruction}
+
+The theoretical Reconstruction error $J$ is given by 
+\begin{equation} J = \sum_{i=k+1}^N eigenvalues
+\label{theoretical_error}
+\end{equation}
+
+The practical Reconstruction error is given by 
+\begin{equation} 
+P = \frac{1}{N}\sum_{n=1}^N |x_n - x_{n_Reconstructed}|^2 
+\label{practical_error}
+\end{equation}
+
+\begin{figure}
+ \begin{center}
+    \fbox{\includegraphics[width=0.7\linewidth,scale=0.2]{./images/reconError_vs_k.eps}}
+    \end{center}
+   \caption{Reconstruction error is inversely proportional to $k$.}
+   \label{fig:recon_error}
+\end{figure}
+
+It is found that both (\ref{theoretical_error}) and (\ref{practical_error}) lead to same $$Reconstruction error=216758.39$$ An example of 3 reconstructed images
+from training set and test set is given in \figref{reconstructed_training_data} and \figref{reconstructed_test_data} (in the Appendix) respectively.
+
+\begin{figure}
+ \begin{center}
+    \fbox{\includegraphics[width=0.9\linewidth,angle=-90,scale=0.9]{./images/reconstructed_training_data_10_47_244.eps}}
+    \end{center}
+   \caption{The right column contains face images from training set and left column contains corresponding reconstructed images with $k$ = 124.
+}
+   \label{fig:reconstructed_training_data}
+\end{figure}
+
+Reconstructed image is calculated using following formula 
+$$ Reconstructed image = W*y_{i} + mean ,$$
+
+where $y_{i}$ is PCA score, $W$ refers to PCA subspace.
+
+\subsubsection{PCA-based Classification}
+
+In this section, PCA is used for classification of images using procedure from slide 23 of PRlecturefacesubspace (lecture notes). In brief, first the eigensubspaces for all classes is computed, then each test sample is projected on each eigensubspace. Finally, the class with the least Reconstruction error is chosen as prediction.
+
+
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline
+Prediction Accuracy & $60.46154\%$ \\
+Precision & $0.5292$ \\
+Recall & $0.69444$\\
+Specificity & $0.79297$\\
+\hline
+\end{tabular}
+\end{center}
+\caption{Evaluating classifier performance. Various statistics calculated from confusion matrix. These values are averaged
+over total classes.}
+\end{table}
+
+
+
+%------------------------------------------------------------------------
+\section{Support Vector Machine}
+
+\subsection{Introduction}
+Support Vector Machines (SVM) is a highly successful Binary Classification algorithm. It is a supervised learning algorithm that aims at maximizing margin. 
+
+\subsection{Multi-Class Extension for SVM}
+In this section, Multi-class extension of SVM is explored using one-vs-all (OvA) and one-vs-one (OvO) methods and then classification results are compared with PCA-based classification.
+
+The classifier is first trained on the \textit{original} training set and then trained on the \textit{reconstructed} training set (obtained using PCA).
+
+The input data partition is the same as used in section \ref{EigenFaces}.
+
+Matlab code (containing explanation in comments) for OvA and OvO methods is provided as Appendix code listing \ref{lst:OvA_code} and \ref{lst:OvO_code} respectively. For Gaussian (RBF) kernel, this code depends on inputs from Cross Validation, which is discussed below.
+
+\subsection*{Selecting Model Parameters}
+
+In the section below, Linear and Gaussian Kernel models are explored as candidates for Kernel functions. The Gaussian (RBF) Kernel requires two parameters, "C" and "sigma" which are chosen using a principled approach for Model selection known as k-fold Cross Validation, where k is usually 5 or 10.
+
+{\bf k-fold Cross Validation} is a technique that improves the generalization (out-of-sample performance) of the model to an unknown/test dataset. This technique reduces the problem of Overfitting\footnote{Overfitting occurs when model parameters capture underlying structure of training data \textit{too well} preventing it from generalizing well to an unknown test set whose structure differs largely from the training set.} to an extent as it does not rely on the training error for selection of parameters. 
+
+Matlab code (containing explanation in comments) for 5-fold Cross Validation is provided as Appendix code listing \ref{lst:crossValidation_code}.
+
+\subsection{Evaluating Classifier performance}
+
+In the following section, Classifier performance
+is evaluated for Linear and Gaussian Kernel, using various performance metrics, each of which is provided in a tabular form. 
+
+Please note following 
+\begin{itemize}
+\itemsep-0.1em 
+\item Metrics derived from the 
+Confusion Matrix (Accuracy, Precision, Recall and Specificity) are averaged over all classes in the test set.
+Code for this is provided as Appendix code listing \ref{lst:EvaluateClassifier_code}.
+\item All data has been standardized\footnote{standardization can greatly reduce the time required for training phase.} before training SVM classifiers.
+\item For RBF kernel, Cross validation, over the entire training set was employed to find the best value of C=32 and $\sigma$=128.
+\end{itemize}
+
+
+\subsection*{SVM Classification using Training set}
+
+% just commented out table.
+% uses gaussian kernel and original training set.
+\iffalse
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline 
+Accuracy using OvA & $90.384615\%$ \\
+Accuracy using OvO & $81.730769\%$ \\
+Precision & $0.006292$ \\
+Recall & $0.019444$\\
+Specificity & $0.979297$\\
+\hline
+\end{tabular}
+\end{center}
+\caption{{\bf Gaussian Kernel}: Various metrics calculated from confusion matrix. These values are averaged
+over total classes.}
+\label{table:performance_gaussian_training}
+\end{table}
+\fi
+
+\begin{table}[H]
+
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline\hline 
+Training time & $3.6124s$ \\
+Testing time & $0.345s$ \\
+\hline
+Accuracy & $90.384615 \%$ \\
+Precision & $0.880556$ \\
+Recall & $0.9$\\
+Specificity & $1.018736$\\
+\hline
+\end{tabular}
+
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline\hline 
+Training time & $13.546577s$ \\
+Testing time & $8.659154s$ \\
+\hline
+Accuracy & $81.730769 \%$ \\
+Precision & $0.832639$ \\
+Recall & $0.849306$\\
+Specificity & $1.016893$\\
+\hline
+\end{tabular}
+}
+\caption{Various metrics calculated for {\bf Gaussian Kernel} Model. The left table contains results on using  OvA extension for SVM and right table contains results on using OvO extension for SVM.}
+\label{table:performance_gaussian_training}
+\end{table}
+
+\begin{table}[H]
+
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline\hline  
+Training time & $2.230037s$ \\
+Testing time & $0.335734s$ \\
+\hline
+Accuracy & $92.307692 \%$ \\
+Precision & $0.910069$ \\
+Recall & $0.931944$\\
+Specificity & $1.019161$\\
+\hline
+\end{tabular}
+
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline\hline  
+Training time & $12.920337s$ \\
+Testing time & $6.947587s$ \\
+\hline
+Accuracy & $83.7679$ \%\\
+Precision & $0.853125$ \\
+Recall & $0.852778$\\
+Specificity & $0.996061$\\
+\hline
+\end{tabular}
+}
+\caption{Various metrics calculated for {\bf Linear Kernel} Model. The left table contains results on using OvA extension for SVM and right table contains results on using OvO extension for SVM.}
+\label{table:performance_linear_training}
+\end{table}
+
+\subsubsection*{Linearly Separable Data}
+While experimenting with the classifier, it was found that the input data is linearly separable\footnote{refers to $n$-dimensional sample points that can be classified by a $n-1$ dimensional hyperplane such that there are no outliers. }. This was found by providing the input data as training and test set that resulted in an accuracy of $100\%$.
+
+As can be seen above, Linear kernel has a better performance (speed and correctness) than a cross-validated Gaussian Kernel.
+
+Hence, for the PCA reconstructed training set below, only results for Linear Kernel are provided.
+\subsection*{SVM Classification using PCA Reconstructed set}
+
+
+\begin{table}[H]
+
+\resizebox{\columnwidth}{!}{
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline\hline  
+Training time & $2.353838s$ \\
+Testing time & $0.373059s$ \\
+\hline
+Accuracy & $91.346154 \%$ \\
+Precision & $0.900347$ \\
+Recall & $0.919792$\\
+Specificity & $1.018962$\\
+\hline
+\end{tabular}
+
+\begin{tabular}{|l|c|}
+\hline
+Metric & Value \\
+\hline\hline  
+Training time & $12.920337s$ \\
+Testing time & $6.947587s$ \\
+\hline
+Accuracy & $81.730769 \%$ \\
+Precision & $0.840972$ \\
+Recall & $0.852778$\\
+Specificity & $0.996052$\\
+\hline
+\end{tabular}
+}
+\caption{Usage of PCA reconstructed training set on {\bf Linear Kernel} Model results in slight decrease in performance compared to Table \ref{table:performance_linear_training}}
+\label{table:performance_linear_pcatraining}
+\end{table}
+
+A few conclusions can be drawn based on the data in the Tables \ref{table:performance_gaussian_training},\ref{table:performance_linear_training},\ref{table:performance_linear_pcatraining} above.
+
+\begin{itemize}
+\item one-vs-all method outperformed one-vs-one in both speed and accuracy. A possible reason can be the small size of training set for each pair of classifiers in the one-vs-one method.
+
+\item Since data is linearly separable, Linear kernel outperforms Gaussian kernel. Gaussian kernel can result in overfitting of data even after cross validation.
+
+\item Usage of PCA reconstructed training set results in slight decrease in performance(Accuracy,precision,recall) compared to linear kernel model. Training and test times remain comparable.
+
+\end{itemize}
+
+\section{Conclusion}
+Based on all the results in PCA and SVM sections, it can be concluded that PCA, being a Generative Algorithm, is more suited towards Dimensionality Reduction/Reconstruction problems while SVM being a Discriminative algorithm is better suited for Classification problems.
+%-------------------------------------------------------------------------
+\clearpage
+\appendix
+\appendixpage
+\section{PCA}
+\begin{figure}[H]
+ \begin{center}
+    \fbox{\includegraphics[width=0.9\linewidth,angle=-90,scale=1]{./images/reconstructed_test_data_32_67_100.eps}}
+    \end{center}
+   \caption{The right column contains face images from test set and left column contains corresponding reconstructed images (using PCA).
+}
+   \label{fig:reconstructed_test_data}
+\end{figure}
+
+\onecolumn
+\lstinputlisting[style=Matlab-editor,caption={Code for heuristic for choosing $k$.},label={lst:choose_bestK}]{choose_bestK.m}
+
+\onecolumn
+\section{SVM}\label{appendix:SVM}
+\lstinputlisting[style=Matlab-editor,caption={Code for one-vs-all(OvA) extension for multi-class SVM.},label={lst:OvA_code}]{one_vs_all.m}
+\clearpage
+\lstinputlisting[style=Matlab-editor,caption={Code for one-vs-one(OvO) extension for multi-class SVM.},label={lst:OvO_code}]{one_vs_one.m}
+\clearpage
+\lstinputlisting[style=Matlab-editor,caption={Code for k-fold Cross validation.},label={lst:crossValidation_code}]{kFoldCrossValidation.m}
+\clearpage
+\lstinputlisting[style=Matlab-editor,caption={Code for extracting data from Confusion Matrix.},label={lst:EvaluateClassifier_code}]{EvaluateClassifier.m}
+\clearpage
+
+
+%-------------------------------------------------------------------------
+\subsection{References}
+
+
+
+%------------------------------------------------------------------------
+
+
+{\small
+\bibliographystyle{ieee}
+\bibliography{egbib}
+}
+
+\end{document}
+
