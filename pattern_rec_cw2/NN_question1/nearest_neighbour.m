@@ -6,22 +6,35 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
     % M_test = size(test_set,1);  %rows in test data
     % N_test = size(test_set,2);  %cols in test data
 
+    knn_method =  'exhaustive'; %'kdtree';
+    
+    metrics_nameList = [];
     % 9 metrics
-    metrics_nameList = ["cityblock","chebychev","correlation","cosine",...
-                         "euclidean","hamming","jaccard","mahalanobis",...
-                         "minkowski"];
+    if(strcmp(knn_method,'exhaustive'))
+        metrics_nameList = ["cityblock","chebychev","correlation",...
+                         "cosine","euclidean","hamming"...
+                         "jaccard","mahalanobis","minkowski","spearman"];
+                     
+                         
+    else 
+        metrics_nameList = ["cityblock","chebychev","euclidean","minkowski"];
+    end
+    
 
+    
+                     
     % row contains prediction labels for each metric.
     % coloumn corresponds to metric.
     % dimension is 60x<number of metrics> for now....
     metric_prediction_labels = zeros(size(test_set,1), size(metrics_nameList,2));            
 
-    % number of neighbours.
-    k_values = 1:100;
+    % k-value for each neighbour
+    k_values = 1:3:30;
     Error_list = ones(size(metrics_nameList,2),size(k_values,2));
     best_accuracy = ones(1,size(k_values,2));
     % probably a bad way of initializing this .. TODO:change later
     best_metric = string(k_values);
+    
     
     
     % For each k
@@ -29,13 +42,13 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
             % Perform nearest neighbour classification. Store prediction labels.
             % Find the classification error on TEST set.
             % Choose distance metric with least classification error.
-    for k = k_values
+    for j = 1:size(k_values,2)
         for i = 1:size(metrics_nameList,2)
    
             metric_name = char(metrics_nameList(i));
         
-            Mdl = fitcknn(train_set,train_label,'NumNeighbors',k,'Standardize',1,...
-                    'Distance',metric_name,'NSMethod','exhaustive') ; 
+            Mdl = fitcknn(train_set,train_label,'NumNeighbors',k_values(j),'Standardize',1,...
+                    'Distance',metric_name,'NSMethod',knn_method) ; 
 
             [label,score,cost] = predict(Mdl,test_set);
             metric_prediction_labels(:,i) = label;
@@ -45,7 +58,7 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
         
         % Find binary classification error for a metric for a given k.
         binary_class_error = findClassificationError(metric_prediction_labels,test_label);
-        Error_list(:,k) = binary_class_error;
+        Error_list(:,j) = binary_class_error;
         
     end
     
@@ -102,7 +115,7 @@ end
 
 % Creates a scatterplot with each metric as series plot
 % For each value of k.
-function plotGraph(k_values,metrics_nameList,Error_list)
+function plotGraph_Scatter(k_values,metrics_nameList,Error_list)
     
     total_metrics = size(metrics_nameList,2);
     Legend = cell(total_metrics,1);
@@ -112,16 +125,53 @@ function plotGraph(k_values,metrics_nameList,Error_list)
         
         for i = 1:total_metrics
             scatter(k_val,Error_list(i,j));
+            
             Legend{i} = char(metrics_nameList(i)) ;
         
             % used to create series plot.
             hold on 
         end
+        
     end
     
+    
+    
+    %yticks([[0:0.2:1],[2:10:70]]);
+    xticks(k_values);
     xlabel('k values');
     ylabel('binary classification error');
     title('Classification Error for distance metrics');
     legend(Legend);
     
 end
+
+
+
+% Creates a normal plot with each metric as series plot
+% For each value of k.
+function plotGraph(k_values,metrics_nameList,Error_list)
+    
+    total_metrics = size(metrics_nameList,2);
+    Legend = cell(total_metrics,1);
+    
+   
+        for i = 1:total_metrics
+            plot(k_values,Error_list(i,:));
+            
+            Legend{i} = char(metrics_nameList(i)) ;
+        
+            % used to create series plot.
+            hold on 
+        end
+        
+    
+    %yticks([[0:0.2:1],[2:10:70]]);
+    xticks(k_values);
+    xlabel('k values');
+    ylabel('binary classification error');
+    title('Classification Error for distance metrics');
+    legend(Legend);
+    
+end
+
+
