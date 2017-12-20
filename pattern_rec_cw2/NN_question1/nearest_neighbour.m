@@ -16,15 +16,14 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
     % dimension is 60x<number of metrics> for now....
     metric_prediction_labels = zeros(size(test_set,1), size(metrics_nameList,2));            
 
-    % k-value for each neighbour
-    k_values = [1,2,3,4,5,6,7,8,9,10,11,12];
+    % number of neighbours.
+    k_values = 1:100;
     Error_list = ones(size(metrics_nameList,2),size(k_values,2));
     best_accuracy = ones(1,size(k_values,2));
     % probably a bad way of initializing this .. TODO:change later
     best_metric = string(k_values);
     
     
-
     % For each k
         % For each distance metric, 
             % Perform nearest neighbour classification. Store prediction labels.
@@ -51,7 +50,8 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
     end
     
     % For each k, find metric with lowest classification error
-    % and save results.
+    % and save results. The find the metric 
+   
     for i = 1:size(k_values,2)
     
         binary_class_error = Error_list(:,i);
@@ -59,8 +59,9 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
         best_metric(i) = metrics_nameList(idx);
         best_accuracy(i) = (1-lowest_class_error)*100;
     end
-    
-    
+    [final_accuracy,idx] = max(best_accuracy);
+    final_metric = best_metric(idx);
+    fprintf(' (Best Metric, Best accuracy) = (%s,%f) found at k = %d',final_metric,final_accuracy,k_values(idx));
     % ====== Plot all results ==========
     
     % plot (Binary) classification error ?
