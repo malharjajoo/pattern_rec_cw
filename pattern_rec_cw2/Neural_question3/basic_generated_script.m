@@ -1,9 +1,7 @@
-function [bestParams] = basic_generated_script(train_set,train_labels,test_set,test_labels)
-
+function [five_best_Params] = basic_generated_script(train_set,train_labels,test_set,test_labels)
 
 warning off; % this is required to prevent trainbr from issuing warning about changing reg param.
-setdemorandstream(391418381);
-
+%setdemorandstream(391418381);
 
 % Choose a Training Function
 % For a list of all training functions type: doc nntrain
@@ -11,17 +9,17 @@ setdemorandstream(391418381);
 % 'trainbr' takes longer but may be better for challenging problems.
 % 'trainscg' uses less memory. Suitable in low memory situations.
 
-
 % Create a Pattern Recognition Network
 hidden_layersizes = [4,6,10];
 training_Fcns = ["trainscg","trainlm","trainbr","traingdm"]; 
-repetitions = 15;
+repetitions = 10;
 performance_Fcns = ["mse","crossentropy"];
-regParam = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1];
+regParam = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9];
 
 % stores best Params among several runs
 % {training method,mse,accuracy,regParam};
 bestParams = {'default',-1,-1,-1,'store_net'};
+five_best_Params = {bestParams;bestParams;bestParams;bestParams;bestParams};
 
 hiddenLayerSize = hidden_layersizes(2);
 performFcn = char(performance_Fcns(1));
@@ -32,6 +30,7 @@ for i = 1:size(training_Fcns,2)
   
         % This is done since backprop begins with random weights everytime
 	for k = 1:repetitions
+     
 		for j = 1:size(regParam,2)
 
 			currentRegParam = regParam(j);
@@ -50,12 +49,14 @@ for i = 1:size(training_Fcns,2)
 
 			[perf,accuracy] = displayPerformance(net,test_labels,y,'true');
 
-			bestParams = updateParam(bestParams,net,perf,accuracy,currentRegParam);
+                        five_best_Params = updateFiveBestParams(five_best_Params,net,perf,accuracy,currentRegParam ) ; 
+			%bestParams = updateParam(bestParams,net,perf,accuracy,currentRegParam);
 
 		end
             fprintf('\n');
 	end
-        fprintf('end of %d repititions for %s',repetitions,net.trainFcn);
+ 
+        fprintf('end of %d repetitions for %s',repetitions,net.trainFcn);
 end
 
 
@@ -69,6 +70,8 @@ disp(bestParams);
 % plotData(tr,test_labels,y);
 
 end
+
+
 
 
 
@@ -128,7 +131,43 @@ function [bestParams] = updateParam(bestParams,net,performance,accuracy,regParam
         bestParams{2} = performance;
         bestParams{3} = accuracy;
         bestParams{4} = regParam;
-        bestParams{5} = net;
+        bestParams{5} = net;   
     end
 end
+
+
+% Function updates and stores 5 best values ( sorted accordint to test accuracy, but criteria can be changed)
+% bestParams = {training method,performance,accuracy,regParam};
+function [five_best_Params] = updateFiveBestParams(five_best_Params,net,performance,accuracy,regParam ) ; 
+   
+    len = size(five_best_Params,1);
+    % Notice 
+    % this is because we only want to update the highest values
+    % if required. Also notice how values are being shifted after update.
+    for i = 1:len
+        
+         if(accuracy > five_best_Params{i}{3})
+             % copy over values
+            for j = i:len-1
+                five_best_Params{j+1}{1} = five_best_Params{j}{1};
+                five_best_Params{j+1}{2} = five_best_Params{j}{2};
+                five_best_Params{j+1}{3} = five_best_Params{j}{3};
+                five_best_Params{j+1}{4} = five_best_Params{j}{4};
+                five_best_Params{j+1}{5} = five_best_Params{j}{5};
+            end
+            
+            five_best_Params{i}{1} = net.trainFcn;
+            five_best_Params{i}{2} = performance;
+            five_best_Params{i}{3} = accuracy;
+            five_best_Params{i}{4} = regParam;
+            five_best_Params{i}{5} = net;   
+            break;
+           
+            
+         end
+         
+    end
+   
+end
+
 
