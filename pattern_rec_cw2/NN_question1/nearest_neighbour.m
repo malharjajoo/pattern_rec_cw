@@ -31,9 +31,10 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
     % k-value for each neighbour
     k_values = 1:3:30;
     Error_list = ones(size(metrics_nameList,2),size(k_values,2));
+
+		% find best accuracy among all metrics for a given k.
     best_accuracy = ones(1,size(k_values,2));
-    % probably a bad way of initializing this .. TODO:change later
-    best_metric = string(k_values);
+    best_metric = string(k_values);  % probably a bad way of initializing this .. TODO:change later
     
     
     
@@ -56,7 +57,7 @@ function [best_metric, lowest_class_error, best_accuracy] = nearest_neighbour(tr
            
         end
         
-        % Find binary classification error for a metric for a given k.
+        % Find binary classification error for all metrics for a given k.
         binary_class_error = findClassificationError(metric_prediction_labels,test_label);
         Error_list(:,j) = binary_class_error;
         
