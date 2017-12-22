@@ -11,18 +11,19 @@ net = bestParams{5};
 
 warning off; % this is required to prevent trainbr from issuing warning about changing reg param.
 
-% Test the Network
-y = net(test_set);
+% Check performance on Test set
+y1 = net(test_set);
 
 % Please Note- At this point if a debugger is used to 
 % check values of y against test_labels, they may "appear" 
-% different. 
-% More details in displayPerformance() below.
-displayPerformance(net,test_labels,y,'true');
+% different. More details in displayPerformance() below.
+displayPerformance(net,test_labels,y1,'true');
+
+% Check performance on Trainign set
+y2 = net(train_set);
+displayPerformance(net,train_labels,y2,'true');
 
 % view(net)  ; % View the Network
-
-
 
 
 % =============== Helper function ===============
