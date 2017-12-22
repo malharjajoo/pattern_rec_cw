@@ -2,8 +2,8 @@
 % It requires the wine.data.csv file to be in a folder "data" in parent
 % directory of this file.
 
-load('Best_params_found.mat');
-net = bestParams{5}; 
+load('five_best_networks.mat');
+net = five_best_Params{1}{5}; 
 
 % Kindly place the wine.data.csv in a "data" folder outside this folder 
 % or change the file path below.
