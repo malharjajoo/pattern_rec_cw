@@ -16,21 +16,23 @@ repetitions = 10;
 performance_Fcns = ["mse","crossentropy"];
 regParam = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9];
 
-% stores best Params among several runs
-% {training method,mse,accuracy,regParam};
+% stores 5 Params for best result among several runs
+% {training method,mse,accuracy,regParam,Matlab network object};
 bestParams = {'default',-1,-1,-1,'store_net'};
 five_best_Params = {bestParams;bestParams;bestParams;bestParams;bestParams};
 
-hiddenLayerSize = hidden_layersizes(2);
+% This is hardcoded but was when experimenting.
+% These are the values that are found to be best.
+hiddenLayerSize = hidden_layersizes(2); 
 performFcn = char(performance_Fcns(1));
 
 
-% ======== Main tranining bit ======
+% ======== Main code ==========
 for i = 1:size(training_Fcns,2)
   
-        % This is done since backprop begins with random weights everytime
+    % Repetitions since backprop(train() below) begins with random weights
+    % everytime.
 	for k = 1:repetitions
-     
 		for j = 1:size(regParam,2)
 
 			currentRegParam = regParam(j);
@@ -40,7 +42,7 @@ for i = 1:size(training_Fcns,2)
 			net = createNetwork(hiddenLayerSize,trainFcn,performFcn);
 
 			% 2) Train the Network
-			net.trainParam.showWindow = false;
+			net.trainParam.showWindow = false; % avoid gui while training.
 			net.performParam.regularization = currentRegParam;
 			[net,tr] = train(net,train_set,train_labels);
 
@@ -49,7 +51,7 @@ for i = 1:size(training_Fcns,2)
 
 			[perf,accuracy] = displayPerformance(net,test_labels,y,'true');
 
-                        five_best_Params = updateFiveBestParams(five_best_Params,net,perf,accuracy,currentRegParam ) ; 
+            five_best_Params = updateFiveBestParams(five_best_Params,net,perf,accuracy,currentRegParam ) ; 
 			%bestParams = updateParam(bestParams,net,perf,accuracy,currentRegParam);
 
 		end
@@ -63,7 +65,7 @@ end
 % ========== Display result ============
 
 fprintf('\nFinal result\n');
-disp(bestParams);
+
 
 % view(net)  ; % View the Network
 
@@ -136,16 +138,15 @@ function [bestParams] = updateParam(bestParams,net,performance,accuracy,regParam
 end
 
 
-% Function updates and stores 5 best values ( sorted accordint to test accuracy, but criteria can be changed)
+% Function updates and stores 5 best values ( sorted according to test accuracy, but criteria can be changed)
 % bestParams = {training method,performance,accuracy,regParam};
 function [five_best_Params] = updateFiveBestParams(five_best_Params,net,performance,accuracy,regParam ) ; 
    
     len = size(five_best_Params,1);
     % Notice 
-    % this is because we only want to update the highest values
-    % if required. Also notice how values are being shifted after update.
+    % This stores the best 5 values.
     for i = 1:len
-        
+        % The structure of five_best_Params is {trainingFcn,performance,accuracy,regParam,networkObj};
          if(accuracy > five_best_Params{i}{3})
              % copy over values
             for j = i:len-1
@@ -169,5 +170,4 @@ function [five_best_Params] = updateFiveBestParams(five_best_Params,net,performa
     end
    
 end
-
 
